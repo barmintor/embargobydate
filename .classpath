@@ -1,7 +1,28 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <classpath>
-	<classpathentry kind="src" path="src/main/java"/>
+	<classpathentry kind="src" output="target/classes" path="src/main/java"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/JavaSE-1.6"/>
+	<classpathentry kind="con" path="org.maven.ide.eclipse.MAVEN2_CLASSPATH_CONTAINER"/>
 	<classpathentry combineaccessrules="false" exported="true" kind="src" path="/fcrepo-server"/>
-	<classpathentry kind="output" path="bin"/>
+	<classpathentry kind="lib" path="/Users/benjamin/.m2/repository/org/fcrepo/sunxacml/1.2/sunxacml-1.2-melcoe.jar">
+		<attributes>
+			<attribute name="maven.groupId" value="org.fcrepo"/>
+			<attribute name="maven.artifactId" value="sunxacml"/>
+			<attribute name="maven.version" value="1.2"/>
+			<attribute name="maven.classifier" value="melcoe"/>
+			<attribute name="maven.scope" value="compile"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="lib" path="/Users/benjamin/.m2/repository/org/slf4j/slf4j-api/1.5.10/slf4j-api-1.5.10.jar"/>
+	<classpathentry combineaccessrules="false" exported="true" kind="src" path="/fcrepo-common"/>
+	<classpathentry exported="true" kind="lib" path="/Users/benjamin/.m2/repository/org/openrdf/sesame/sesame-model/2.2.1/sesame-model-2.2.1.jar"/>
+	<classpathentry kind="lib" path="/Users/benjamin/.m2/repository/org/fcrepo/mulgara-core/2.1.4/mulgara-core-2.1.4.jar">
+		<attributes>
+			<attribute name="maven.groupId" value="org.fcrepo"/>
+			<attribute name="maven.artifactId" value="mulgara-core"/>
+			<attribute name="maven.version" value="2.1.4"/>
+			<attribute name="maven.scope" value="compile"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="output" path="target/classes"/>
 </classpath>
