@@ -1,5 +1,5 @@
 package org.fcrepo.server.security;
 
 public enum EmbargoDatePropertyType {
-    OBJECT, RELSEXT
+    OBJECT_PROPS, OBJECT_RELS, RINDEX
 }
