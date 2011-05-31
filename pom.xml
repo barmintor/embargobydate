@@ -237,6 +237,10 @@
       </dependency>
       <dependency>
         <groupId>org.fcrepo</groupId>
+        <artifactId>mulgara-core</artifactId>
+      </dependency>
+      <dependency>
+        <groupId>org.fcrepo</groupId>
         <artifactId>openrdf-sesame-onejar</artifactId>
         <version>2.2.1</version>
       </dependency>

@@ -5,21 +5,20 @@ import java.net.URISyntaxException;
 import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.util.Date;
 import java.util.Set;
 
 import org.jrdf.graph.PredicateNode;
-import org.jrdf.graph.SubjectNode;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.BeanInitializationException;
 
 import org.fcrepo.common.Constants;
 import org.fcrepo.common.rdf.SimpleURIReference;
 
+import org.fcrepo.server.security.AttributeFinderModule;
 import org.fcrepo.server.ReadOnlyContext;
 import org.fcrepo.server.Server;
+import org.fcrepo.server.errors.InitializationException;
 import org.fcrepo.server.errors.ServerException;
 import org.fcrepo.server.resourceIndex.ResourceIndex;
 import org.fcrepo.server.storage.DOManager;
@@ -40,7 +39,6 @@ extends AttributeFinderModule {
     public static final String ATTRIBUTE_TYPE = null; // String
 	
     private EmbargoDatePropertyType m_propType;
-    private String m_dsId;
     private ResourceIndex m_rindex;
     private final String m_propName;
     private final String m_dateFormat;
@@ -76,22 +74,18 @@ extends AttributeFinderModule {
         m_propType = type;
     }
 
-    public void setDatastreamId(String dsId) {
-        m_dsId = dsId;
-    }
-    
     public void setResourceIndex(ResourceIndex rindex) {
         m_rindex = rindex;
     }
     
-    public void init() throws BeanInitializationException {
+    public void init() throws InitializationException {
         switch (m_propType){
             case OBJECT_PROPS:
                 break;
             case OBJECT_RELS:
                 break;
             case RINDEX:
-                if (m_rindex == null) throw new BeanInitializationException("resourceIndex property not set");
+                if (m_rindex == null) throw new InitializationException("resourceIndex property not set");
         }
     }
     
@@ -131,29 +125,19 @@ extends AttributeFinderModule {
             case OBJECT_PROPS:
                 try{
                     long end = getLatestDateFromObject(reader);
-                    values = new String[]{Boolean.toString((getAttributeStartTime >= end))};
+                    values = new String[]{Boolean.toString((end > getAttributeStartTime))};
                 } catch (ServerException e) {
                     logger.error("couldn't get object relationships",e);
                 }
                 break;
             case OBJECT_RELS:
-                SubjectNode snode = null;
-                if (m_dsId == null) { // search RELS-EXT for object triple
-                    snode = null;
-                } else { // search RELS-INT for datastream triple
-                    if (!m_dsId.equals(getDatastreamId(context))){
-                        return null;
-                    }
-                    try{
-                        String snode_uri = "info:fedora/" + reader.GetObjectPID() + "/" + m_dsId;
-                        snode = new SimpleURIReference(new URI(snode_uri));
-                    } catch (Throwable t) {
-                        logger.error("couldn't get object pid or uri", t);
-                    }
-                }
-                try{
-            	    long end = getLatestDateFromRels(reader, snode);
-            	    values = new String[]{Boolean.toString((getAttributeStartTime >= end))};
+                String objuri = null;
+                String dsId = getDatastreamId(context);
+                try {
+                    objuri = "info:fedora/" + reader.GetObjectPID();
+                    String dsuri = (dsId == null)? null : objuri + "/" + dsId;
+            	    long end = getLatestDateFromRels(reader, objuri, dsuri);
+                    values = new String[]{Boolean.toString((end > getAttributeStartTime))};
                 } catch (ServerException e) {
                     logger.error("couldn't get object relationships",e);
                 }
@@ -180,15 +164,17 @@ extends AttributeFinderModule {
 		}
 	}
 	
-	private long getLatestDateFromRels(DOReader reader, SubjectNode snode) throws ServerException {
+	private long getLatestDateFromRels(DOReader reader, String objuri, String dsuri) throws ServerException {
 		long result = -1;
-		Set<RelationshipTuple> rels = reader.getRelationships(snode, m_pnode, null);
+		Set<RelationshipTuple> rels = reader.getRelationships(null, m_pnode, null);
 		if (!rels.isEmpty()){
 			DateFormat df = new SimpleDateFormat(m_dateFormat);
 			for (RelationshipTuple rel:rels){
 				try {
-					long d = df.parse(rel.object).getTime();
-					if (d > result) result = d;
+				    if (rel.subject.equals(objuri) || rel.subject.equals(dsuri)){
+					  long d = df.parse(rel.object).getTime();
+					  if (d > result) result = d;
+				    }
 				} catch (ParseException e) {
 					logger.warn("Could not parse date property: " + rel.object);
 				}
