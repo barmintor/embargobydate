@@ -5,7 +5,7 @@
 
   <groupId>org.fcrepo</groupId>
   <artifactId>fccreate-embargobydate</artifactId>
-  <version>3.5</version>
+  <version>3.5-SNAPSHOT</version>
   <name>Fedora Create - DateEmbargoAttributeFinder</name>
   <url>http://fedora-commons.org/</url>
 
@@ -234,10 +234,6 @@
             <artifactId>log4j</artifactId>
           </exclusion>
         </exclusions>
-      </dependency>
-      <dependency>
-        <groupId>org.fcrepo</groupId>
-        <artifactId>mulgara-core</artifactId>
       </dependency>
       <dependency>
         <groupId>org.fcrepo</groupId>

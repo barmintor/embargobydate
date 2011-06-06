@@ -32,12 +32,12 @@ import com.sun.xacml.cond.EvaluationResult;
 public class DateEmbargoAttributeFinderModule
 extends AttributeFinderModule {
 
-	private static final Logger logger =
-		LoggerFactory.getLogger(DateEmbargoAttributeFinderModule.class);
-	
-	public static final String ATTRIBUTE_URI = Constants.RESOURCE.uri + ":embargoed";
-    public static final String ATTRIBUTE_TYPE = null; // String
-	
+    private static final Logger logger =
+        LoggerFactory.getLogger(DateEmbargoAttributeFinderModule.class);
+
+    public static final String ATTRIBUTE_URI = Constants.RESOURCE.uri + ":embargoed";
+    public static final String ATTRIBUTE_TYPE = "http://www.w3.org/2001/XMLSchema#string"; // String
+
     private EmbargoDatePropertyType m_propType;
     private ResourceIndex m_rindex;
     private final String m_propName;
@@ -46,9 +46,9 @@ extends AttributeFinderModule {
     public static DateEmbargoAttributeFinderModule getFromRELSEXT(String propName, String dateFormat) {
         return new DateEmbargoAttributeFinderModule(propName, dateFormat);
     }
-    private DateEmbargoAttributeFinderModule(
-            String propName,
-            String dateFormat) {
+    public DateEmbargoAttributeFinderModule(
+                                             String propName,
+                                             String dateFormat) {
         m_propType = EmbargoDatePropertyType.OBJECT_PROPS;
         m_propName = propName;
         m_dateFormat = dateFormat;
@@ -77,7 +77,7 @@ extends AttributeFinderModule {
     public void setResourceIndex(ResourceIndex rindex) {
         m_rindex = rindex;
     }
-    
+
     public void init() throws InitializationException {
         switch (m_propType){
             case OBJECT_PROPS:
@@ -88,101 +88,102 @@ extends AttributeFinderModule {
                 if (m_rindex == null) throw new InitializationException("resourceIndex property not set");
         }
     }
-    
-	@Override
-	protected boolean canHandleAdhoc() {
-		return false;
-	}
 
-	@Override
-	protected Object getAttributeLocally(int designatorType,
-			String attributeId,
-			URI resourceCategory,
-			EvaluationCtx context) {
-		long getAttributeStartTime = System.currentTimeMillis();
+    @Override
+    protected boolean canHandleAdhoc() {
+        return false;
+    }
 
-		try {
-			String pid = PolicyFinderModule.getPid(context);
-			if ("".equals(pid)) {
-				logger.debug("no pid");
-				return null;
-			}
-			logger.debug("getResourceAttribute, pid=" + pid);
-			DOReader reader = null;
-			try {
-				logger.debug("pid=" + pid);
-				reader =
-					doManager.getReader(Server.USE_DEFINITIVE_STORE,
-							ReadOnlyContext.EMPTY,
-							pid);
-			} catch (ServerException e) {
-				logger.error("couldn't get object reader",e);
-				return null;
-			}
-			String[] values = null;
+    @Override
+    protected Object getAttributeLocally(int designatorType,
+                                         String attributeId,
+                                         URI resourceCategory,
+                                         EvaluationCtx context) {
+        long getAttributeStartTime = System.currentTimeMillis();
 
-            switch (m_propType){
-            case OBJECT_PROPS:
-                try{
-                    long end = getLatestDateFromObject(reader);
-                    values = new String[]{Boolean.toString((end > getAttributeStartTime))};
-                } catch (ServerException e) {
-                    logger.error("couldn't get object relationships",e);
-                }
-                break;
-            case OBJECT_RELS:
-                String objuri = null;
-                String dsId = getDatastreamId(context);
-                try {
-                    objuri = "info:fedora/" + reader.GetObjectPID();
-                    String dsuri = (dsId == null)? null : objuri + "/" + dsId;
-            	    long end = getLatestDateFromRels(reader, objuri, dsuri);
-                    values = new String[]{Boolean.toString((end > getAttributeStartTime))};
-                } catch (ServerException e) {
-                    logger.error("couldn't get object relationships",e);
-                }
-                break;
-            default:
-            	logger.warn("Unknown property type for date embargo: " + m_propType);
+        try {
+            String pid = PolicyFinderModule.getPid(context);
+            if ("".equals(pid)) {
+                logger.debug("no pid");
+                return null;
             }
+            logger.debug("getResourceAttribute, pid=" + pid);
+            DOReader reader = null;
+            try {
+                logger.debug("pid=" + pid);
+                reader =
+                    doManager.getReader(Server.USE_DEFINITIVE_STORE,
+                                        ReadOnlyContext.EMPTY,
+                                        pid);
+            } catch (ServerException e) {
+                logger.error("couldn't get object reader",e);
+                return null;
+            }
+            String[] values = null;
 
-			return values;
-		} finally {
-			if (logger.isDebugEnabled()){
-	            long dur = System.currentTimeMillis() - getAttributeStartTime;
-	            logger.debug("Locally getting the '" + attributeId
-	                         + "' attribute for this resource took " + dur + "ms.");
-			}
-		}
-	}
+            if (ATTRIBUTE_URI.equals(attributeId)){
+                switch (m_propType){
+                    case OBJECT_PROPS:
+                        try{
+                            long end = getLatestDateFromObject(reader);
+                            values = new String[]{Boolean.toString((end > getAttributeStartTime))};
+                        } catch (ServerException e) {
+                            logger.error("couldn't get object relationships",e);
+                        }
+                        break;
+                    case OBJECT_RELS:
+                        String objuri = null;
+                        String dsId = getDatastreamId(context);
+                        try {
+                            objuri = "info:fedora/" + reader.GetObjectPID();
+                            String dsuri = (dsId == null)? null : objuri + "/" + dsId;
+                            long end = getLatestDateFromRels(reader, objuri, dsuri);
+                            values = new String[]{Boolean.toString((end > getAttributeStartTime))};
+                        } catch (ServerException e) {
+                            logger.error("couldn't get object relationships",e);
+                        }
+                        break;
+                    default:
+                        logger.warn("Unknown property type for date embargo: " + m_propType);
+                }
+            }
+            return values;
+        } finally {
+            if (logger.isDebugEnabled()){
+                long dur = System.currentTimeMillis() - getAttributeStartTime;
+                logger.debug("Locally getting the '" + attributeId
+                             + "' attribute for this resource took " + dur + "ms.");
+            }
+        }
+    }
 
-	private DOManager doManager = null;
+    private DOManager doManager = null;
 
-	public void setDOManager(DOManager doManager) {
-		if (this.doManager == null) {
-			this.doManager = doManager;
-		}
-	}
-	
-	private long getLatestDateFromRels(DOReader reader, String objuri, String dsuri) throws ServerException {
-		long result = -1;
-		Set<RelationshipTuple> rels = reader.getRelationships(null, m_pnode, null);
-		if (!rels.isEmpty()){
-			DateFormat df = new SimpleDateFormat(m_dateFormat);
-			for (RelationshipTuple rel:rels){
-				try {
-				    if (rel.subject.equals(objuri) || rel.subject.equals(dsuri)){
-					  long d = df.parse(rel.object).getTime();
-					  if (d > result) result = d;
-				    }
-				} catch (ParseException e) {
-					logger.warn("Could not parse date property: " + rel.object);
-				}
-			}
-		}
-		return result;
-	}
-	
+    public void setDOManager(DOManager doManager) {
+        if (this.doManager == null) {
+            this.doManager = doManager;
+        }
+    }
+
+    private long getLatestDateFromRels(DOReader reader, String objuri, String dsuri) throws ServerException {
+        long result = -1;
+        Set<RelationshipTuple> rels = reader.getRelationships(null, m_pnode, null);
+        if (!rels.isEmpty()){
+            DateFormat df = new SimpleDateFormat(m_dateFormat);
+            for (RelationshipTuple rel:rels){
+                try {
+                    if (rel.subject.equals(objuri) || rel.subject.equals(dsuri)){
+                        long d = df.parse(rel.object).getTime();
+                        if (d > result) result = d;
+                    }
+                } catch (ParseException e) {
+                    logger.warn("Could not parse date property: " + rel.object);
+                }
+            }
+        }
+        return result;
+    }
+
     private long getLatestDateFromObject(DOReader reader) throws ServerException {
         long result = -1;
         String prop = reader.getObject().getExtProperty(m_propName);
@@ -204,21 +205,21 @@ extends AttributeFinderModule {
         }
 
         EvaluationResult attribute =
-                context.getResourceAttribute(STRING_ATTRIBUTE_URI,
-                                             datastreamIdUri,
-                                             null);
+            context.getResourceAttribute(STRING_ATTRIBUTE_URI,
+                                         datastreamIdUri,
+                                         null);
 
         Object element = getAttributeFromEvaluationResult(attribute);
         if (element == null) {
             logger.debug("getDatastreamId: " + " exit on "
-                    + "can't get resource-id on request callback");
+                         + "can't get resource-id on request callback");
             return null;
         }
 
         if (!(element instanceof StringAttribute)) {
             logger.debug("getDatastreamId: " + " exit on "
-                    + "couldn't get resource-id from xacml request "
-                    + "non-string returned");
+                         + "couldn't get resource-id from xacml request "
+                         + "non-string returned");
             return null;
         }
 
