@@ -26,6 +26,7 @@ import org.fcrepo.server.storage.DOReader;
 import org.fcrepo.server.storage.types.RelationshipTuple;
 
 import com.sun.xacml.EvaluationCtx;
+import com.sun.xacml.attr.AttributeDesignator;
 import com.sun.xacml.attr.StringAttribute;
 import com.sun.xacml.cond.EvaluationResult;
 
@@ -39,17 +40,14 @@ extends AttributeFinderModule {
     public static final String ATTRIBUTE_TYPE = "http://www.w3.org/2001/XMLSchema#string"; // String
 
     private EmbargoDatePropertyType m_propType;
-    private ResourceIndex m_rindex;
     private final String m_propName;
     private final String m_dateFormat;
     private final PredicateNode m_pnode;
-    public static DateEmbargoAttributeFinderModule getFromRELSEXT(String propName, String dateFormat) {
-        return new DateEmbargoAttributeFinderModule(propName, dateFormat);
-    }
     public DateEmbargoAttributeFinderModule(
                                              String propName,
+                                             EmbargoDatePropertyType type,
                                              String dateFormat) {
-        m_propType = EmbargoDatePropertyType.OBJECT_PROPS;
+        m_propType = type;
         m_propName = propName;
         m_dateFormat = dateFormat;
         PredicateNode propNode = null;
@@ -60,6 +58,7 @@ extends AttributeFinderModule {
             else {
                 propNode = null;
             }
+            registerSupportedDesignatorType(AttributeDesignator.RESOURCE_TARGET);
             registerAttribute(ATTRIBUTE_URI,ATTRIBUTE_TYPE);
             setInstantiatedOk(true);
         }
@@ -70,22 +69,16 @@ extends AttributeFinderModule {
             m_pnode = propNode;
         }
     }
-    public void setType(EmbargoDatePropertyType type) {
-        m_propType = type;
-    }
-
-    public void setResourceIndex(ResourceIndex rindex) {
-        m_rindex = rindex;
-    }
 
     public void init() throws InitializationException {
         switch (m_propType){
             case OBJECT_PROPS:
                 break;
             case OBJECT_RELS:
+                if (m_pnode == null) throw new InitializationException("relationship predicate property not set");
                 break;
-            case RINDEX:
-                if (m_rindex == null) throw new InitializationException("resourceIndex property not set");
+            default:
+                break;
         }
     }
 
@@ -101,6 +94,7 @@ extends AttributeFinderModule {
                                          EvaluationCtx context) {
         long getAttributeStartTime = System.currentTimeMillis();
 
+        String[] values = null;
         try {
             String pid = PolicyFinderModule.getPid(context);
             if ("".equals(pid)) {
@@ -119,7 +113,6 @@ extends AttributeFinderModule {
                 logger.error("couldn't get object reader",e);
                 return null;
             }
-            String[] values = null;
 
             if (ATTRIBUTE_URI.equals(attributeId)){
                 switch (m_propType){
@@ -147,10 +140,21 @@ extends AttributeFinderModule {
                         logger.warn("Unknown property type for date embargo: " + m_propType);
                 }
             }
+            else {
+                logger.warn("Unexpected attribute id: " + attributeId);
+            }
             return values;
         } finally {
             if (logger.isDebugEnabled()){
                 long dur = System.currentTimeMillis() - getAttributeStartTime;
+                if (values == null) {
+                    logger.debug("Found no values for " + ATTRIBUTE_URI);
+                }
+                else {
+                    for (String value: values){
+                        logger.debug("Found value \"" +  value + "\" for " + ATTRIBUTE_URI);
+                    }
+                }
                 logger.debug("Locally getting the '" + attributeId
                              + "' attribute for this resource took " + dur + "ms.");
             }
@@ -166,22 +170,32 @@ extends AttributeFinderModule {
     }
 
     private long getLatestDateFromRels(DOReader reader, String objuri, String dsuri) throws ServerException {
-        long result = -1;
+        long objresult = -1;
+        long dsresult = -1;
         Set<RelationshipTuple> rels = reader.getRelationships(null, m_pnode, null);
         if (!rels.isEmpty()){
             DateFormat df = new SimpleDateFormat(m_dateFormat);
             for (RelationshipTuple rel:rels){
                 try {
-                    if (rel.subject.equals(objuri) || rel.subject.equals(dsuri)){
-                        long d = df.parse(rel.object).getTime();
-                        if (d > result) result = d;
+                    if (rel.predicate.equals(this.m_propName)){
+                        if (rel.subject.equals(objuri)){
+                            long d = df.parse(rel.object).getTime();
+                            if (d > objresult) objresult = d;
+                        }
+                        else if (rel.subject.equals(dsuri)){
+                            long d = df.parse(rel.object).getTime();
+                            if (d > dsresult) dsresult = d;
+                        }
+                    }
+                    else {
+                        logger.warn("unexpected predicate: " + rel.predicate + " expected: " + m_propName);
                     }
                 } catch (ParseException e) {
                     logger.warn("Could not parse date property: " + rel.object);
                 }
             }
         }
-        return result;
+        return (dsresult == -1)? objresult:dsresult;
     }
 
     private long getLatestDateFromObject(DOReader reader) throws ServerException {
