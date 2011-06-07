@@ -10,7 +10,7 @@ To use this module, you will need to:
 
 ## Spring Configuration ##
 Under $FEDORA_HOME/server/config/spring, there will be a file containing the PolicyEnforcementPoint configuration- it's called policy-enforcement.xml by default.  You will need to make two changes to this configuration.  The first is to add a bean definition for the DaeEmbargoAttributeFinderModule:
-`
+
         <bean id="org.fcrepo.server.security.DateEmbargoAttributeFinderModule"
               class="org.fcrepo.server.security.DateEmbargoAttributeFinderModule"
               autowire-candidate="true">
@@ -33,9 +33,9 @@ Under $FEDORA_HOME/server/config/spring, there will be a file containing the Pol
                   <ref bean="org.fcrepo.server.storage.DOManager" />
               </property>
         </bean>
-`
+
 The second is to find the PolicyEnforcementPoint bean and wire your new module into it:
-`
+
         <bean id="org.fcrepo.security.PolicyEnforcementPoint" ...>
           <property name="attributeFinderModules">
             <list>
