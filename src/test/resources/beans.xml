@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xmlns:context="http://www.springframework.org/schema/context"
+    xsi:schemaLocation="http://www.springframework.org/schema/beans 
+        http://www.springframework.org/schema/beans/spring-beans-3.0.xsd
+        http://www.springframework.org/schema/context 
+        http://www.springframework.org/schema/context/spring-context-3.0.xsd">
+        <bean id="org.fcrepo.server.security.DateEmbargoAttributeFinderModule"
+              class="org.fcrepo.server.security.DateEmbargoAttributeFinderModule"
+              autowire-candidate="true">
+              <constructor-arg type="java.lang.String"
+               index="0" value="info:fedora/demo/properties/embargountil" />
+              <constructor-arg type="org.fcrepo.server.security.EmbargoDatePropertyType"
+               index="1" name="type" value="OBJECT_RELS" />
+              <constructor-arg type="java.lang.String"
+               index="2" value="yyyyMMdd" />
+              <property name="DOManager">
+                  <ref bean="org.fcrepo.server.storage.DOManager" />
+              </property>
+        </bean>
+</beans>
