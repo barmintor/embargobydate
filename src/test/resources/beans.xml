@@ -9,12 +9,21 @@
         <bean id="org.fcrepo.server.security.DateEmbargoAttributeFinderModule"
               class="org.fcrepo.server.security.DateEmbargoAttributeFinderModule"
               autowire-candidate="true">
+              <!--  The first constructor arg is a string value indicating the uri
+              of the object property or RELS-EXT/INT predicate that indicates the
+               embargo-until date -->
               <constructor-arg type="java.lang.String"
                index="0" value="info:fedora/demo/properties/embargountil" />
+               <!-- The second constructor arg is an enum that indicates
+                whether the embargo-until date is encoded in a RELS-EXT or RELS-INT
+                property (OBJECT_RELS) or in an object extension property (OBJECT_PROPS)-->
               <constructor-arg type="org.fcrepo.server.security.EmbargoDatePropertyType"
                index="1" name="type" value="OBJECT_RELS" />
+               <!-- The third constructor arg is the SimpleDateFormat pattern that
+                should be used to parse the embargo-until date -->
               <constructor-arg type="java.lang.String"
                index="2" value="yyyyMMdd" />
+               <!-- This property wires in the DOManager implementaton. -->
               <property name="DOManager">
                   <ref bean="org.fcrepo.server.storage.DOManager" />
               </property>
