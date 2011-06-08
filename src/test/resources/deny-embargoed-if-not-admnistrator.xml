@@ -3,7 +3,7 @@
         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
         PolicyId="deny-embargoed-objects-or-datastreams-if-not-administrator"
         RuleCombiningAlgId="urn:oasis:names:tc:xacml:1.0:rule-combining-algorithm:first-applicable">
-  <Description>deny any access to objects or datastreams, which are indicated t be under an embarg by date,
+  <Description>deny any access to objects or datastreams, which are indicated to be under an embargo by date,
     unless subject has administrator role</Description>
   <Target>
     <Subjects>
